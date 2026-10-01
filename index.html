@@ -1,0 +1,1059 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>온가족 파스텔 여행 플래너</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Pretendard', '-apple-system', 'BlinkMacSystemFont', 'system-ui', 'sans-serif'],
+          },
+          colors: {
+            pastel: {
+              cream: '#FDFBF7',
+              bg: '#F7F4EE',
+              card: '#FFFFFF',
+              coral: '#FFE8E1',
+              coralDark: '#E06D53',
+              lavender: '#EFEAFF',
+              lavenderDark: '#7965C1',
+              mint: '#E2F8F1',
+              mintDark: '#2C9E85',
+              sky: '#E1F3FE',
+              skyDark: '#3A86D4',
+              lemon: '#FFF6D6',
+              lemonDark: '#C99414',
+              rose: '#FFE5EC',
+              roseDark: '#D9537F',
+              slate: '#4E5968',
+              border: '#EBE5DC'
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      background-color: #F7F4EE;
+      font-family: 'Pretendard', sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .plan-card {
+      transition: transform 0.2s cubic-bezier(0.2, 0, 0, 1), box-shadow 0.2s ease, opacity 0.2s ease, border-color 0.2s ease;
+    }
+    .plan-card.dragging {
+      opacity: 0.45;
+      transform: scale(0.98);
+      border: 2px dashed #7965C1 !important;
+    }
+    .plan-card.drag-over {
+      border-top: 3px solid #7965C1 !important;
+      transform: translateY(2px);
+    }
+    .custom-scroll::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    .custom-scroll::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    .custom-scroll::-webkit-scrollbar-thumb {
+      background: #D9D2C7;
+      border-radius: 8px;
+    }
+    @keyframes floatUp {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .animate-float {
+      animation: floatUp 0.25s ease-out forwards;
+    }
+  </style>
+</head>
+<body class="min-h-screen text-stone-700 flex flex-col justify-between py-4 sm:py-8 px-3 sm:px-6">
+
+  <!-- Main Container -->
+  <main class="w-full max-w-3xl mx-auto bg-white rounded-3xl shadow-[0_15px_40px_rgba(0,0,0,0.04)] border border-stone-200/80 overflow-hidden flex flex-col transition-all">
+
+    <!-- Top Travel Banner & Header -->
+    <header class="p-6 sm:p-8 bg-gradient-to-br from-pastel-cream via-white to-pastel-coral/30 border-b border-stone-200/70">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1 bg-pastel-coral text-pastel-coralDark rounded-full">
+              <i class="fa-solid fa-compass"></i> 가족 해외여행 플래너
+            </span>
+            <span id="tripDateDisplay" class="text-xs text-stone-500 font-semibold bg-white/80 px-2 py-0.5 rounded-md border border-stone-200/60">
+              2027.02.03 ~ 02.10 (6박 8일)
+            </span>
+          </div>
+          <div class="flex items-center gap-2.5 mt-2">
+            <h1 id="tripTitleText" class="text-2xl sm:text-3xl font-bold tracking-tight text-stone-800 cursor-pointer group" onclick="promptEditTripTitle()" title="여행 이름 변경하기">
+              <span id="tripTitleValue">발리 힐링 가족여행 🌴 🇮🇩</span>
+              <i class="fa-solid fa-pen text-xs text-stone-300 group-hover:text-stone-500 transition ml-1"></i>
+            </h1>
+          </div>
+        </div>
+
+        <!-- Family Member Selector (Who is writing?) -->
+        <div class="bg-stone-50/90 border border-stone-200/80 rounded-2xl p-2.5 flex flex-col gap-1.5">
+          <span class="text-[11px] font-semibold text-stone-400 flex items-center justify-between">
+            <span>현재 계획자 (작성자)</span>
+            <button type="button" onclick="promptAddFamilyMember()" class="text-stone-400 hover:text-stone-700 transition" title="가족 추가">
+              <i class="fa-solid fa-user-plus text-[11px]"></i>
+            </button>
+          </span>
+          <div id="familyMemberList" class="flex items-center gap-1.5 overflow-x-auto custom-scroll pb-0.5">
+            <!-- Family member avatar badges inserted by JS -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Summary Stats -->
+      <div class="mt-6 pt-5 border-t border-stone-100 flex flex-wrap items-center justify-between gap-3 text-xs">
+        <div class="flex items-center gap-4">
+          <div>
+            <span class="text-stone-400 block text-[11px]">총 계획 일정</span>
+            <span id="statTotalPlans" class="text-base font-bold text-stone-800">0개</span>
+          </div>
+          <div class="h-6 w-[1px] bg-stone-200"></div>
+          <div>
+            <span class="text-stone-400 block text-[11px]">체크/방문 완료</span>
+            <span id="statCompletedPlans" class="text-base font-bold text-pastel-mintDark">0개</span>
+          </div>
+          <div class="h-6 w-[1px] bg-stone-200"></div>
+          <div>
+            <span class="text-stone-400 block text-[11px]">참여 가족</span>
+            <span id="statFamilyCount" class="text-base font-bold text-pastel-lavenderDark">5명</span>
+          </div>
+        </div>
+
+        <div class="w-full sm:w-44">
+          <div class="flex justify-between text-[11px] font-semibold text-stone-500 mb-1">
+            <span>일정 진행률</span>
+            <span id="statProgressPercent">0%</span>
+          </div>
+          <div class="w-full bg-stone-100 rounded-full h-2 overflow-hidden">
+            <div id="itineraryProgressBar" class="h-full bg-gradient-to-r from-pastel-coralDark to-pastel-lavenderDark rounded-full transition-all duration-300" style="width: 0%"></div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Day Navigation Bar -->
+    <div class="px-6 pt-4 border-b border-stone-100 flex items-center justify-between gap-2 overflow-x-auto custom-scroll bg-stone-50/50">
+      <div id="dayTabsContainer" class="flex gap-2 min-w-max pb-3">
+        <!-- Rendered by JS: Day 1, Day 2, Day 3, etc. -->
+      </div>
+      <button 
+        type="button" 
+        onclick="addNewDay()" 
+        class="pb-3 text-xs font-semibold text-stone-400 hover:text-stone-700 transition flex items-center gap-1 shrink-0"
+        title="다음 일정(일차) 추가"
+      >
+        <i class="fa-solid fa-calendar-plus"></i>
+        <span>일차 추가</span>
+      </button>
+    </div>
+
+    <!-- Plan Input Section -->
+    <section class="p-5 sm:p-6 bg-white border-b border-stone-100">
+      <form id="planForm" class="space-y-3">
+        <div class="grid grid-cols-1 sm:grid-cols-12 gap-2">
+          <!-- Time or Tag Picker -->
+          <div class="sm:col-span-3 flex items-center gap-1.5 bg-stone-50 border border-stone-200 rounded-2xl px-3 py-2">
+            <i class="fa-regular fa-clock text-stone-400 text-xs"></i>
+            <input 
+              type="time" 
+              id="planTimeInput" 
+              value="10:00"
+              class="w-full bg-transparent text-xs font-semibold text-stone-700 focus:outline-none"
+            />
+          </div>
+
+          <!-- Title Input -->
+          <div class="sm:col-span-6">
+            <input 
+              type="text" 
+              id="planTitleInput" 
+              placeholder="방문지 또는 할 일 (예: 협재해수욕장 산책, 카페)" 
+              class="w-full px-4 py-2.5 bg-stone-50 border border-stone-200 rounded-2xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-pastel-coralDark/30 focus:border-pastel-coralDark transition duration-150 placeholder-stone-400"
+              maxlength="80"
+              required
+            />
+          </div>
+
+          <!-- Add Button -->
+          <div class="sm:col-span-3 flex items-center">
+            <button 
+              type="submit" 
+              class="w-full py-2.5 px-4 bg-pastel-coral text-pastel-coralDark hover:bg-[#FED5C8] active:scale-95 font-semibold text-xs sm:text-sm rounded-2xl transition duration-150 flex items-center justify-center gap-1.5 shadow-sm"
+            >
+              <i class="fa-solid fa-plus text-xs"></i>
+              <span>일정 추가</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Detail Options: Category & Assigned Family Member -->
+        <div class="flex flex-wrap items-center justify-between gap-2 pt-1 text-xs">
+          <!-- Category Chips -->
+          <div class="flex flex-wrap items-center gap-1.5">
+            <span class="text-stone-400 text-[11px] font-medium mr-1">분류:</span>
+            <label class="cursor-pointer">
+              <input type="radio" name="category" value="spot" checked class="hidden peer">
+              <span class="px-2.5 py-1 rounded-xl bg-stone-100 text-stone-600 peer-checked:bg-pastel-sky peer-checked:text-pastel-skyDark transition text-[11px] font-medium flex items-center gap-1">
+                🏖️ 명소/관광
+              </span>
+            </label>
+            <label class="cursor-pointer">
+              <input type="radio" name="category" value="food" class="hidden peer">
+              <span class="px-2.5 py-1 rounded-xl bg-stone-100 text-stone-600 peer-checked:bg-pastel-lemon peer-checked:text-pastel-lemonDark transition text-[11px] font-medium flex items-center gap-1">
+                🍜 맛집/식사
+              </span>
+            </label>
+            <label class="cursor-pointer">
+              <input type="radio" name="category" value="stay" class="hidden peer">
+              <span class="px-2.5 py-1 rounded-xl bg-stone-100 text-stone-600 peer-checked:bg-pastel-lavender peer-checked:text-pastel-lavenderDark transition text-[11px] font-medium flex items-center gap-1">
+                🏨 숙소/휴식
+              </span>
+            </label>
+            <label class="cursor-pointer">
+              <input type="radio" name="category" value="pack" class="hidden peer">
+              <span class="px-2.5 py-1 rounded-xl bg-stone-100 text-stone-600 peer-checked:bg-pastel-mint peer-checked:text-pastel-mintDark transition text-[11px] font-medium flex items-center gap-1">
+                🎒 준비/예약
+              </span>
+            </label>
+          </div>
+
+          <!-- Memo Optional Field Toggle -->
+          <div class="flex items-center gap-2 w-full sm:w-auto">
+            <input 
+              type="text" 
+              id="planMemoInput" 
+              placeholder="메모/위치/예산 (선택)" 
+              class="w-full sm:w-56 px-3 py-1 bg-stone-50 border border-stone-200 rounded-xl text-xs placeholder-stone-400 focus:outline-none focus:border-stone-400"
+              maxlength="60"
+            />
+          </div>
+        </div>
+      </form>
+    </section>
+
+    <!-- Itinerary List Section -->
+    <section class="p-4 sm:p-6 flex-1 min-h-[360px] bg-stone-50/30">
+      <div class="flex items-center justify-between mb-3 px-1 text-xs text-stone-400">
+        <span id="currentDayHeaderTitle" class="font-bold text-stone-700 text-sm">
+          1일차 일정
+        </span>
+        <div class="flex items-center gap-3">
+          <span class="hidden sm:inline-flex items-center gap-1 text-[11px]">
+            <i class="fa-solid fa-arrows-up-down text-[10px]"></i> 드래그하거나 화살표로 순서 이동
+          </span>
+          <button type="button" onclick="confirmClearCurrentDay()" class="hover:text-pastel-coralDark transition text-[11px]">
+            <i class="fa-regular fa-trash-can"></i> 이 일차 비우기
+          </button>
+        </div>
+      </div>
+
+      <!-- Schedule Cards Container -->
+      <ul id="planList" class="space-y-2.5">
+        <!-- Rendered items by JS -->
+      </ul>
+
+      <!-- Empty State -->
+      <div id="planEmptyState" class="hidden py-14 flex flex-col items-center justify-center text-center">
+        <div class="w-14 h-14 mb-3 rounded-2xl bg-white border border-stone-200/60 shadow-sm flex items-center justify-center text-stone-300 text-2xl">
+          <i class="fa-solid fa-suitcase-rolling"></i>
+        </div>
+        <p class="text-sm font-semibold text-stone-600">아직 등록된 일정이 없어요</p>
+        <p class="text-xs text-stone-400 mt-1">가족들과 함께 가고 싶은 장소나 맛집을 추가해보세요!</p>
+      </div>
+    </section>
+
+    <!-- Footer Quick Tips -->
+    <footer class="p-3.5 sm:px-6 bg-stone-50 border-t border-stone-200/80 flex flex-col sm:flex-row items-center justify-between text-xs text-stone-400 gap-2">
+      <div class="flex items-center gap-2">
+        <span class="inline-block w-2 h-2 rounded-full bg-pastel-mintDark"></span>
+        <span>가족 누구나 계획을 추가, 수정, 순서 변경할 수 있어요</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <button type="button" onclick="showExportSummary()" class="px-2.5 py-1 bg-white hover:bg-stone-100 border border-stone-200 rounded-lg text-stone-600 font-medium transition text-[11px]">
+          <i class="fa-regular fa-clipboard mr-1"></i>일정 요약 복사
+        </button>
+      </div>
+    </footer>
+  </main>
+
+  <!-- Edit Plan Item Modal -->
+  <div id="editModal" class="fixed inset-0 bg-stone-900/30 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50 transition-opacity">
+    <div class="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl animate-float border border-stone-100">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-base font-bold text-stone-800 flex items-center gap-1.5">
+          <i class="fa-solid fa-pen-to-square text-pastel-lavenderDark"></i> 일정 상세 수정
+        </h3>
+        <button onclick="closeEditModal()" class="text-stone-400 hover:text-stone-600">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      <form id="editPlanForm" class="space-y-3.5 text-xs">
+        <input type="hidden" id="editPlanId">
+        <div>
+          <label class="block font-semibold text-stone-500 mb-1">일정 제목 / 장소</label>
+          <input type="text" id="editPlanTitle" class="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl font-medium focus:outline-none focus:border-stone-400 text-stone-800" required>
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block font-semibold text-stone-500 mb-1">시간</label>
+            <input type="time" id="editPlanTime" class="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl font-medium focus:outline-none focus:border-stone-400 text-stone-800">
+          </div>
+          <div>
+            <label class="block font-semibold text-stone-500 mb-1">담당 가족</label>
+            <select id="editPlanMember" class="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl font-medium focus:outline-none focus:border-stone-400 text-stone-800">
+              <!-- Family options inserted dynamically -->
+            </select>
+          </div>
+        </div>
+        <div>
+          <label class="block font-semibold text-stone-500 mb-1">메모 / 위치 / 예산</label>
+          <input type="text" id="editPlanMemo" class="w-full px-3.5 py-2 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:border-stone-400 text-stone-800" placeholder="상세 팁이나 연락처 등">
+        </div>
+        <div class="flex gap-2 justify-end pt-3">
+          <button type="button" onclick="closeEditModal()" class="px-4 py-2 font-semibold text-stone-600 bg-stone-100 hover:bg-stone-200 rounded-xl transition">취소</button>
+          <button type="submit" class="px-5 py-2 font-semibold text-white bg-pastel-lavenderDark hover:bg-[#6853B3] rounded-xl transition">저장하기</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Add Family Member Modal -->
+  <div id="addMemberModal" class="fixed inset-0 bg-stone-900/30 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50">
+    <div class="bg-white rounded-3xl p-6 max-w-xs w-full shadow-2xl animate-float border border-stone-100">
+      <h3 class="text-base font-bold text-stone-800 mb-1 flex items-center gap-1.5">
+        <i class="fa-solid fa-user-plus text-pastel-coralDark"></i> 새 가족 구성원 추가
+      </h3>
+      <p class="text-xs text-stone-400 mb-4">함께 여행할 가족의 호칭을 입력해주세요.</p>
+      <input type="text" id="newMemberNameInput" placeholder="예: 삼촌, 이모, 막내" maxlength="10" class="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs mb-3 focus:outline-none focus:border-stone-400">
+      <div class="flex gap-2 justify-end">
+        <button type="button" onclick="closeAddMemberModal()" class="px-3 py-1.5 text-xs font-semibold text-stone-600 bg-stone-100 rounded-xl hover:bg-stone-200">취소</button>
+        <button type="button" onclick="submitAddFamilyMember()" class="px-4 py-1.5 text-xs font-semibold text-white bg-pastel-coralDark rounded-xl hover:bg-[#cf5b42]">추가</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- General Confirmation Modal (Replaces window.confirm) -->
+  <div id="confirmModal" class="fixed inset-0 bg-stone-900/30 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50">
+    <div class="bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl animate-float border border-stone-100">
+      <div class="w-11 h-11 rounded-2xl bg-pastel-coral flex items-center justify-center text-pastel-coralDark text-lg mb-3">
+        <i class="fa-solid fa-triangle-exclamation"></i>
+      </div>
+      <h3 id="confirmModalTitle" class="text-base font-bold text-stone-800 mb-1">삭제하시겠습니까?</h3>
+      <p id="confirmModalDesc" class="text-xs text-stone-500 leading-relaxed mb-5">항목을 삭제합니다.</p>
+      <div class="flex gap-2 justify-end">
+        <button type="button" onclick="closeConfirmModal()" class="px-4 py-2 text-xs font-semibold text-stone-600 bg-stone-100 hover:bg-stone-200 rounded-xl transition">취소</button>
+        <button id="confirmModalSubmitBtn" type="button" class="px-4 py-2 text-xs font-semibold text-white bg-pastel-coralDark hover:bg-[#d05c42] rounded-xl transition">확인</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Message -->
+  <div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-stone-800/90 backdrop-blur text-white text-xs px-4 py-2.5 rounded-full shadow-xl opacity-0 pointer-events-none transition-all duration-300 transform translate-y-3 z-50 flex items-center gap-2">
+    <i id="toastIcon" class="fa-solid fa-check text-pastel-mintDark"></i>
+    <span id="toastMsg">알림 메시지</span>
+  </div>
+
+  <!-- Edit Trip Title Modal (alert/prompt 대체) -->
+  <div id="editTitleModal" class="fixed inset-0 bg-stone-900/30 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50">
+    <div class="bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl animate-float border border-stone-100">
+      <h3 class="text-base font-bold text-stone-800 mb-1 flex items-center gap-1.5">
+        <i class="fa-solid fa-pen text-pastel-coralDark"></i> 여행 제목 변경
+      </h3>
+      <p class="text-xs text-stone-400 mb-3">우리 가족 여행의 멋진 이름을 지어주세요.</p>
+      <input type="text" id="tripTitleInput" maxlength="30" class="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs mb-3 focus:outline-none focus:border-stone-400">
+      <div class="flex gap-2 justify-end">
+        <button type="button" onclick="closeEditTitleModal()" class="px-3.5 py-2 text-xs font-semibold text-stone-600 bg-stone-100 rounded-xl hover:bg-stone-200">취소</button>
+        <button type="button" onclick="submitEditTripTitle()" class="px-4 py-2 text-xs font-semibold text-white bg-pastel-coralDark rounded-xl hover:bg-[#cf5b42]">저장</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hidden clipboard text helper -->
+  <textarea id="copyHelper" class="sr-only" aria-hidden="true"></textarea>
+
+  <script>
+    const STORAGE_KEY = 'family_travel_planner_bali_2027_v1';
+
+    // Category Styling and Labels
+    const CATEGORIES = {
+      spot: { name: '명소/관광', icon: '🏖', bg: 'bg-pastel-sky', text: 'text-pastel-skyDark', border: 'border-sky-200' },
+      food: { name: '맛집/식사', icon: '🍜', bg: 'bg-pastel-lemon', text: 'text-pastel-lemonDark', border: 'border-amber-200' },
+      stay: { name: '숙소/휴식', icon: '🏨', bg: 'bg-pastel-lavender', text: 'text-pastel-lavenderDark', border: 'border-purple-200' },
+      pack: { name: '비행/이동/준비', icon: '✈️', bg: 'bg-pastel-mint', text: 'text-pastel-mintDark', border: 'border-emerald-200' }
+    };
+
+    // Day to Date mapping for 2027.02.03 ~ 02.10
+    const TRIP_DATES = [
+      '2/3 (화)', // Day 1
+      '2/4 (수)', // Day 2
+      '2/5 (목)', // Day 3
+      '2/6 (금)', // Day 4
+      '2/7 (토)', // Day 5
+      '2/8 (일)', // Day 6
+      '2/9 (월)', // Day 7
+      '2/10 (화)' // Day 8
+    ];
+
+    // State Variables
+    let appState = {
+      tripTitle: '발리 힐링 가족여행 🌴 🇮🇩',
+      tripPeriod: '2027.02.03 ~ 02.10 (6박 8일)',
+      currentDay: 1,
+      totalDays: 8,
+      activeMemberId: 'm1',
+      familyMembers: [
+        { id: 'm1', name: '아빠 👨', color: 'bg-pastel-sky text-pastel-skyDark' },
+        { id: 'm2', name: '엄마 👩', color: 'bg-pastel-rose text-pastel-roseDark' },
+        { id: 'm3', name: '윤희 👧', color: 'bg-pastel-lavender text-pastel-lavenderDark' },
+        { id: 'm4', name: '승희 🌸', color: 'bg-pastel-mint text-pastel-mintDark' },
+        { id: 'm5', name: '상원 👦', color: 'bg-pastel-lemon text-pastel-lemonDark' }
+      ],
+      plans: []
+    };
+
+    let draggedItemId = null;
+    let confirmCallback = null;
+
+    function renderFamilyMembers() {
+      const container = document.getElementById('familyMemberList');
+      if (!container) return;
+      container.innerHTML = '';
+
+      appState.familyMembers.forEach(member => {
+        const isActive = member.id === appState.activeMemberId;
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.onclick = () => switchActiveMember(member.id);
+        btn.className = `px-2.5 py-1 rounded-xl text-xs font-semibold transition shrink-0 flex items-center gap-1 border ${
+          isActive 
+            ? `${member.color} ring-2 ring-stone-700/20 border-transparent shadow-sm scale-105` 
+            : 'bg-white text-stone-600 border-stone-200 hover:bg-stone-100 opacity-80'
+        }`;
+        btn.innerHTML = `
+          <span>${escapeHtml(member.name)}</span>
+          ${isActive ? '<i class="fa-solid fa-check text-[10px] ml-0.5"></i>' : ''}
+        `;
+        container.appendChild(btn);
+      });
+
+      const memberCountEl = document.getElementById('statFamilyCount');
+      if (memberCountEl) {
+        memberCountEl.textContent = `${appState.familyMembers.length}명`;
+      }
+    }
+
+    function switchActiveMember(memberId) {
+      appState.activeMemberId = memberId;
+      renderFamilyMembers();
+      saveData();
+      const current = appState.familyMembers.find(m => m.id === memberId);
+      if (current) {
+        showToast(`작성자가 [${current.name}]님으로 변경되었습니다 🌿`);
+      }
+    }
+
+    function promptAddFamilyMember() {
+      const input = document.getElementById('newMemberNameInput');
+      if (input) input.value = '';
+      document.getElementById('addMemberModal').classList.remove('hidden');
+      if (input) input.focus();
+    }
+
+    function closeAddMemberModal() {
+      document.getElementById('addMemberModal').classList.add('hidden');
+    }
+
+    function submitAddFamilyMember() {
+      const input = document.getElementById('newMemberNameInput');
+      const name = input ? input.value.trim() : '';
+      if (!name) {
+        showToast('가족 호칭 또는 이름을 입력해주세요.');
+        return;
+      }
+
+      const colorPalettes = [
+        'bg-pastel-sky text-pastel-skyDark',
+        'bg-pastel-rose text-pastel-roseDark',
+        'bg-pastel-lavender text-pastel-lavenderDark',
+        'bg-pastel-mint text-pastel-mintDark',
+        'bg-pastel-lemon text-pastel-lemonDark',
+        'bg-pastel-coral text-pastel-coralDark'
+      ];
+      const randomColor = colorPalettes[appState.familyMembers.length % colorPalettes.length];
+
+      const newMember = {
+        id: 'm_' + Date.now(),
+        name: name,
+        color: randomColor
+      };
+
+      appState.familyMembers.push(newMember);
+      appState.activeMemberId = newMember.id;
+      saveData();
+      renderFamilyMembers();
+      closeAddMemberModal();
+      showToast(`[${name}]님이 가족 구성원으로 추가되었습니다 🎉`);
+    }
+
+    function promptEditTripTitle() {
+      const modal = document.getElementById('editTitleModal');
+      const input = document.getElementById('tripTitleInput');
+      if (input) input.value = appState.tripTitle || '';
+      modal.classList.remove('hidden');
+      if (input) input.focus();
+    }
+
+    function closeEditTitleModal() {
+      document.getElementById('editTitleModal').classList.add('hidden');
+    }
+
+    function submitEditTripTitle() {
+      const input = document.getElementById('tripTitleInput');
+      const val = input ? input.value.trim() : '';
+      if (val) {
+        appState.tripTitle = val;
+        document.getElementById('tripTitleValue').textContent = val;
+        saveData();
+        showToast('여행 제목이 수정되었습니다 ✨');
+      }
+      closeEditTitleModal();
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      loadData();
+      renderFamilyMembers();
+      renderDayTabs();
+      renderPlanList();
+      updateStats();
+      setupFormListeners();
+    });
+
+    function saveData() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(appState));
+      } catch (e) {
+        console.error('데이터 저장 실패:', e);
+      }
+      updateStats();
+    }
+
+    function loadData() {
+      try {
+        const stored = localStorage.getItem(STORAGE_KEY);
+        if (stored) {
+          appState = JSON.parse(stored);
+          if (!appState.tripTitle) appState.tripTitle = '발리 힐링 가족여행 🌴 🇮🇩';
+          if (!appState.currentDay) appState.currentDay = 1;
+          if (!appState.totalDays) appState.totalDays = 8;
+          if (!appState.familyMembers || appState.familyMembers.length === 0) {
+            appState.familyMembers = [
+              { id: 'm1', name: '아빠 👨', color: 'bg-pastel-sky text-pastel-skyDark' },
+              { id: 'm2', name: '엄마 👩', color: 'bg-pastel-rose text-pastel-roseDark' },
+              { id: 'm3', name: '윤희 👧', color: 'bg-pastel-lavender text-pastel-lavenderDark' },
+              { id: 'm4', name: '승희 🌸', color: 'bg-pastel-mint text-pastel-mintDark' },
+              { id: 'm5', name: '상원 👦', color: 'bg-pastel-lemon text-pastel-lemonDark' }
+            ];
+          }
+          if (!appState.plans) appState.plans = [];
+        } else {
+          // Initial Bali travel itinerary based on flight details
+          appState.plans = [
+            // Day 1: 27.02.03 출발
+            { id: 101, day: 1, time: '14:30', title: '인천국제공항(ICN) 집결 & 와이파이도시락/환전 수령 ✈️', category: 'pack', memberId: 'm1', memo: '여권 유효기간 6개월 이상 & 전자비자(e-VOA) 확인', completed: false, likes: 5 },
+            { id: 102, day: 1, time: '15:20', title: '항공사 카운터 수속 및 출국심사 🛂', category: 'pack', memberId: 'm2', memo: '수하물 위탁 및 면세구역 입장', completed: false, likes: 4 },
+            { id: 103, day: 1, time: '17:50', title: '인천공항 출발 🛫 (발리 덴파사르행 직항)', category: 'pack', memberId: 'm3', memo: '비행시간 약 7시간 5분 / 편한 복장 & 기내식 즐기기', completed: false, likes: 5 },
+            { id: 104, day: 1, time: '23:55', title: '발리 응우라라이 국제공항(DPS) 도착 🛬', category: 'pack', memberId: 'm4', memo: '전자세관신고서(ECD) QR코드 준비 완료하기', completed: false, likes: 5 },
+            { id: 105, day: 1, time: '24:40', title: '클룩/호텔 픽업 기사님 미팅 & 숙소 이동 🚐', category: 'stay', memberId: 'm5', memo: '예약 바우처 지참, 리조트 체크인 후 휴식', completed: false, likes: 4 },
+
+            // Day 2: 27.02.04 여유로운 발리 첫날
+            { id: 201, day: 2, time: '10:00', title: '리조트 조식 & 풀빌라 수영 즐기기 🏊‍♀️', category: 'stay', memberId: 'm2', memo: '선크림 필수! 튜브 챙겨서 여유로운 오전 보내기', completed: false, likes: 4 },
+            { id: 202, day: 2, time: '12:30', title: '발리 로컬 나시고랭 & 사테 맛집 점심 🍛', category: 'food', memberId: 'm3', memo: '시원한 빈탕 맥주 & 코코넛 워터', completed: false, likes: 5 },
+            { id: 203, day: 2, time: '16:00', title: '발리 바다 선셋 비치클럽 방문 🌅', category: 'spot', memberId: 'm4', memo: '황금빛 노을 배경으로 온가족 인생사진 남기기', completed: false, likes: 5 },
+
+            // Day 3: 27.02.05 우붓 자연 투어
+            { id: 301, day: 3, time: '10:00', title: '우붓 몽키포레스트 산책 🐒', category: 'spot', memberId: 'm5', memo: '소지품(안경, 모자) 원숭이 주의', completed: false, likes: 3 },
+            { id: 302, day: 3, time: '14:00', title: '뜨갈랄랑 계단식 논 뷰 카페 & 발리스윙 ☕', category: 'food', memberId: 'm3', memo: '멋진 초록빛 정글 뷰 감상', completed: false, likes: 4 },
+
+            // Day 7: 27.02.09 귀국 비행기 탑승일
+            { id: 701, day: 7, time: '12:00', title: '리조트 체크아웃 & 짐 보관 🧳', category: 'stay', memberId: 'm1', memo: '객실 두고 가는 물건 없는지 꼼꼼히 확인', completed: false, likes: 3 },
+            { id: 702, day: 7, time: '14:30', title: '기념품 쇼핑 (발리 커피, 야자오일, 핸드크림) 🛍️', category: 'spot', memberId: 'm2', memo: '빈땅 슈퍼마켓 또는 우붓 아트마켓', completed: false, likes: 5 },
+            { id: 703, day: 7, time: '17:30', title: '온가족 아로마 릴렉싱 스파 & 샤워 💆', category: 'stay', memberId: 'm3', memo: '밤 비행기 타기 전 2시간 힐링 마사지', completed: false, likes: 5 },
+            { id: 704, day: 7, time: '20:30', title: '발리 덴파사르 공항(DPS) 이동 & 카운터 수속 ✈️', category: 'pack', memberId: 'm5', memo: '출발 3시간 전 공항 도착하여 짐 부치기', completed: false, likes: 4 },
+            { id: 705, day: 7, time: '23:50', title: '발리 덴파사르 공항 출발 🛫 (인천행 귀국편)', category: 'pack', memberId: 'm1', memo: '기내 안대, 목베개 착용하고 푹 잠자기', completed: false, likes: 5 },
+
+            // Day 8: 27.02.10 인천 도착
+            { id: 801, day: 8, time: '07:45', title: '인천국제공항(ICN) 도착 & 입국 심사 🛬', category: 'pack', memberId: 'm4', memo: '수하물 찾기 & 세관신고', completed: false, likes: 5 },
+            { id: 802, day: 8, time: '09:00', title: '공항 리무진/차량 탑승 & 따뜻한 집으로 이동 🏡', category: 'stay', memberId: 'm1', memo: '발리 가족여행 추억 정리 & 꿀휴식', completed: false, likes: 5 }
+          ];
+          saveData();
+        }
+      } catch (e) {
+        console.error('데이터 불러오기 에러:', e);
+      }
+      document.getElementById('tripTitleValue').textContent = appState.tripTitle;
+    }
+
+    function renderDayTabs() {
+      const container = document.getElementById('dayTabsContainer');
+      container.innerHTML = '';
+
+      for (let day = 1; day <= appState.totalDays; day++) {
+        const isCurrent = day === appState.currentDay;
+        const btn = document.createElement('button');
+        const dateLabel = TRIP_DATES[day - 1] || `${day}일차`;
+        btn.type = 'button';
+        btn.onclick = () => switchDay(day);
+        btn.className = `px-3.5 py-1.5 rounded-2xl text-xs font-bold transition flex items-center gap-1.5 shrink-0 ${
+          isCurrent 
+            ? 'bg-stone-800 text-white shadow-sm' 
+            : 'bg-white border border-stone-200 text-stone-600 hover:text-stone-900 hover:border-stone-300'
+        }`;
+        
+        // Count plans for this day
+        const dayPlanCount = appState.plans.filter(p => p.day === day).length;
+        btn.innerHTML = `
+          <span>${day}일차</span>
+          <span class="text-[10px] font-normal opacity-80">${dateLabel}</span>
+          <span class="text-[10px] px-1.5 py-0.2 rounded-full ${isCurrent ? 'bg-stone-700 text-stone-200' : 'bg-stone-100 text-stone-500'}">${dayPlanCount}</span>
+        `;
+        container.appendChild(btn);
+      }
+      const currentDateText = TRIP_DATES[appState.currentDay - 1] ? ` (${TRIP_DATES[appState.currentDay - 1]})` : '';
+      document.getElementById('currentDayHeaderTitle').textContent = `${appState.currentDay}일차 일정 계획${currentDateText}`;
+    }
+
+    function switchDay(day) {
+      appState.currentDay = day;
+      renderDayTabs();
+      renderPlanList();
+    }
+
+    function addNewDay() {
+      appState.totalDays += 1;
+      appState.currentDay = appState.totalDays;
+      saveData();
+      renderDayTabs();
+      renderPlanList();
+      showToast(`${appState.totalDays}일차가 추가되었습니다 🗓️`);
+    }
+
+    function setupFormListeners() {
+      const form = document.getElementById('planForm');
+      form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const titleInput = document.getElementById('planTitleInput');
+        const timeInput = document.getElementById('planTimeInput');
+        const memoInput = document.getElementById('planMemoInput');
+        const catInput = document.querySelector('input[name="category"]:checked');
+
+        const title = titleInput.value.trim();
+        if (!title) return;
+
+        const newPlan = {
+          id: Date.now(),
+          day: appState.currentDay,
+          time: timeInput.value || '10:00',
+          title: title,
+          category: catInput ? catInput.value : 'spot',
+          memberId: appState.activeMemberId,
+          memo: memoInput.value.trim(),
+          completed: false,
+          likes: 1
+        };
+
+        // Insert at the end of current day's plans or preserve order
+        appState.plans.push(newPlan);
+        saveData();
+
+        titleInput.value = '';
+        memoInput.value = '';
+        renderPlanList();
+        renderDayTabs();
+        showToast('일정에 등록되었습니다! 🎈');
+      });
+
+      // Edit Form Listener
+      const editForm = document.getElementById('editPlanForm');
+      editForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const planId = parseInt(document.getElementById('editPlanId').value, 10);
+        const plan = appState.plans.find(p => p.id === planId);
+        if (plan) {
+          plan.title = document.getElementById('editPlanTitle').value.trim();
+          plan.time = document.getElementById('editPlanTime').value;
+          plan.memberId = document.getElementById('editPlanMember').value;
+          plan.memo = document.getElementById('editPlanMemo').value.trim();
+          saveData();
+          renderPlanList();
+          closeEditModal();
+          showToast('일정이 수정되었습니다 ✏️');
+        }
+      });
+    }
+
+    function renderPlanList() {
+      const listEl = document.getElementById('planList');
+      const emptyStateEl = document.getElementById('planEmptyState');
+      const currentPlans = appState.plans.filter(p => p.day === appState.currentDay);
+
+      listEl.innerHTML = '';
+
+      if (currentPlans.length === 0) {
+        emptyStateEl.classList.remove('hidden');
+      } else {
+        emptyStateEl.classList.add('hidden');
+      }
+
+      currentPlans.forEach((item, index) => {
+        const cat = CATEGORIES[item.category] || CATEGORIES.spot;
+        const author = appState.familyMembers.find(m => m.id === item.memberId) || { name: '가족', color: 'bg-stone-100 text-stone-600' };
+
+        const li = document.createElement('li');
+        li.className = `plan-card group flex flex-col sm:flex-row sm:items-center justify-between p-3.5 sm:px-4 bg-white rounded-2xl border transition-all duration-200 ${
+          item.completed ? 'border-stone-200 bg-stone-50/50 opacity-70' : 'border-stone-200/90 shadow-sm hover:shadow-md'
+        }`;
+        li.draggable = true;
+        li.dataset.id = item.id;
+        li.dataset.index = index;
+
+        li.innerHTML = `
+          <div class="flex items-start sm:items-center gap-3 flex-1 min-w-0">
+            <!-- Drag Handle -->
+            <button type="button" class="cursor-grab active:cursor-grabbing text-stone-300 hover:text-stone-500 touch-none py-1 hidden sm:block" title="위아래로 드래그하여 순서 변경">
+              <i class="fa-solid fa-grip-vertical text-xs"></i>
+            </button>
+
+            <!-- Complete Checkbox -->
+            <button 
+              type="button" 
+              onclick="togglePlanComplete(${item.id})"
+              class="w-6 h-6 rounded-xl flex items-center justify-center transition shrink-0 mt-0.5 sm:mt-0 ${
+                item.completed ? 'bg-pastel-mintDark text-white' : 'border-2 border-stone-300 hover:border-pastel-coralDark bg-white'
+              }"
+              title="${item.completed ? '방문 취소' : '방문 완료 체크'}"
+            >
+              ${item.completed ? '<i class="fa-solid fa-check text-xs"></i>' : ''}
+            </button>
+
+            <!-- Content Area -->
+            <div class="flex-1 min-w-0 pr-1">
+              <div class="flex flex-wrap items-center gap-1.5 mb-1">
+                <!-- Time Badge -->
+                <span class="text-[11px] font-semibold text-stone-500 bg-stone-100 px-2 py-0.5 rounded-lg flex items-center gap-1">
+                  <i class="fa-regular fa-clock text-[10px]"></i> ${escapeHtml(item.time)}
+                </span>
+                <!-- Category Badge -->
+                <span class="text-[11px] font-medium px-2 py-0.5 rounded-lg ${cat.bg} ${cat.text}">
+                  ${cat.icon} ${cat.name}
+                </span>
+                <!-- Assigned / Created by Member -->
+                <span class="text-[10px] font-medium px-1.5 py-0.5 rounded-md ${author.color}">
+                  ${escapeHtml(author.name)}
+                </span>
+              </div>
+
+              <!-- Title & Memo -->
+              <p class="text-sm font-semibold text-stone-800 ${item.completed ? 'line-through text-stone-400' : ''} truncate">
+                ${escapeHtml(item.title)}
+              </p>
+              ${item.memo ? `<p class="text-[11px] text-stone-400 truncate mt-0.5 flex items-center gap-1"><i class="fa-regular fa-note-sticky text-[10px]"></i> ${escapeHtml(item.memo)}</p>` : ''}
+            </div>
+          </div>
+
+          <!-- Actions: Up/Down, Heart, Edit, Delete -->
+          <div class="flex items-center justify-between sm:justify-end gap-1.5 mt-2 sm:mt-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-stone-100 shrink-0">
+            <!-- Heart / Family Vote -->
+            <button 
+              type="button" 
+              onclick="togglePlanLike(${item.id})" 
+              class="px-2 py-1 rounded-xl text-xs font-semibold flex items-center gap-1 transition ${
+                item.likes > 0 ? 'bg-rose-50 text-rose-500 hover:bg-rose-100' : 'text-stone-300 hover:text-stone-500'
+              }"
+              title="가족 추천/하트"
+            >
+              <i class="fa-solid fa-heart text-[11px]"></i>
+              <span class="text-[11px]">${item.likes || 0}</span>
+            </button>
+
+            <!-- Up / Down Order Buttons (Mobile + Touch Friendly) -->
+            <div class="flex items-center gap-0.5 bg-stone-100 rounded-xl p-0.5">
+              <button 
+                type="button" 
+                onclick="movePlanOrder(${item.id}, -1)" 
+                class="w-6 h-6 rounded-lg text-stone-500 hover:text-stone-800 hover:bg-white flex items-center justify-center transition"
+                title="위로 순서 이동"
+              >
+                <i class="fa-solid fa-chevron-up text-[10px]"></i>
+              </button>
+              <button 
+                type="button" 
+                onclick="movePlanOrder(${item.id}, 1)" 
+                class="w-6 h-6 rounded-lg text-stone-500 hover:text-stone-800 hover:bg-white flex items-center justify-center transition"
+                title="아래로 순서 이동"
+              >
+                <i class="fa-solid fa-chevron-down text-[10px]"></i>
+              </button>
+            </div>
+
+            <!-- Edit Button -->
+            <button 
+              type="button" 
+              onclick="openEditModal(${item.id})" 
+              class="w-7 h-7 rounded-xl text-stone-400 hover:text-stone-700 hover:bg-stone-100 flex items-center justify-center transition"
+              title="상세 수정"
+            >
+              <i class="fa-solid fa-pen text-[11px]"></i>
+            </button>
+
+            <!-- Delete Button -->
+            <button 
+              type="button" 
+              onclick="confirmDeletePlan(${item.id})" 
+              class="w-7 h-7 rounded-xl text-stone-400 hover:text-pastel-coralDark hover:bg-pastel-coral/30 flex items-center justify-center transition"
+              title="일정 삭제"
+            >
+              <i class="fa-regular fa-trash-can text-xs"></i>
+            </button>
+          </div>
+        `;
+
+        setupCardDragEvents(li, item.id);
+        listEl.appendChild(li);
+      });
+    }
+
+    function setupCardDragEvents(cardEl, id) {
+      cardEl.addEventListener('dragstart', (e) => {
+        draggedItemId = id;
+        cardEl.classList.add('dragging');
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', id);
+      });
+
+      cardEl.addEventListener('dragend', () => {
+        cardEl.classList.remove('dragging');
+        document.querySelectorAll('.plan-card').forEach(el => el.classList.remove('drag-over'));
+      });
+
+      cardEl.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        cardEl.classList.add('drag-over');
+      });
+
+      cardEl.addEventListener('dragleave', () => {
+        cardEl.classList.remove('drag-over');
+      });
+
+      cardEl.addEventListener('drop', (e) => {
+        e.preventDefault();
+        cardEl.classList.remove('drag-over');
+        const targetId = parseInt(cardEl.dataset.id, 10);
+        if (draggedItemId && draggedItemId !== targetId) {
+          reorderPlans(draggedItemId, targetId);
+          showToast('일정 순서가 변경되었습니다 🔄');
+        }
+      });
+    }
+
+    function reorderPlans(sourceId, targetId) {
+      const dayPlans = appState.plans.filter(p => p.day === appState.currentDay);
+      const sourceIndex = dayPlans.findIndex(p => p.id === sourceId);
+      const targetIndex = dayPlans.findIndex(p => p.id === targetId);
+
+      if (sourceIndex < 0 || targetIndex < 0) return;
+
+      const [movedItem] = dayPlans.splice(sourceIndex, 1);
+      dayPlans.splice(targetIndex, 0, movedItem);
+
+      // Rebuild main array maintaining other days
+      const otherPlans = appState.plans.filter(p => p.day !== appState.currentDay);
+      appState.plans = [...otherPlans, ...dayPlans];
+      saveData();
+      renderPlanList();
+    }
+
+    function movePlanOrder(id, direction) {
+      const dayPlans = appState.plans.filter(p => p.day === appState.currentDay);
+      const currentIndex = dayPlans.findIndex(p => p.id === id);
+      const targetIndex = currentIndex + direction;
+
+      if (currentIndex < 0 || targetIndex < 0 || targetIndex >= dayPlans.length) return;
+
+      const [movedItem] = dayPlans.splice(currentIndex, 1);
+      dayPlans.splice(targetIndex, 0, movedItem);
+
+      const otherPlans = appState.plans.filter(p => p.day !== appState.currentDay);
+      appState.plans = [...otherPlans, ...dayPlans];
+      saveData();
+      renderPlanList();
+      showToast('일정 순서를 이동했습니다 ↕️');
+    }
+
+    function togglePlanComplete(id) {
+      const plan = appState.plans.find(p => p.id === id);
+      if (plan) {
+        plan.completed = !plan.completed;
+        saveData();
+        renderPlanList();
+        updateStats();
+        if (plan.completed) {
+          showToast('체크 완료! 멋진 추억이 되었네요 🌟');
+        }
+      }
+    }
+
+    function togglePlanLike(id) {
+      const plan = appState.plans.find(p => p.id === id);
+      if (plan) {
+        plan.likes = (plan.likes || 0) + 1;
+        saveData();
+        renderPlanList();
+        showToast('가족 추천 하트가 추가되었습니다 ❤️');
+      }
+    }
+
+    function openEditModal(id) {
+      const plan = appState.plans.find(p => p.id === id);
+      if (!plan) return;
+
+      document.getElementById('editPlanId').value = plan.id;
+      document.getElementById('editPlanTitle').value = plan.title;
+      document.getElementById('editPlanTime').value = plan.time || '10:00';
+      document.getElementById('editPlanMemo').value = plan.memo || '';
+
+      const memberSelect = document.getElementById('editPlanMember');
+      memberSelect.innerHTML = '';
+      appState.familyMembers.forEach(m => {
+        const opt = document.createElement('option');
+        opt.value = m.id;
+        opt.textContent = m.name;
+        if (m.id === plan.memberId) opt.selected = true;
+        memberSelect.appendChild(opt);
+      });
+
+      document.getElementById('editModal').classList.remove('hidden');
+    }
+
+    function closeEditModal() {
+      document.getElementById('editModal').classList.add('hidden');
+    }
+
+    function confirmDeletePlan(id) {
+      const plan = appState.plans.find(p => p.id === id);
+      if (!plan) return;
+
+      openConfirmModal({
+        title: '일정 삭제',
+        desc: `"${plan.title}" 일정을 삭제하시겠습니까?`,
+        onConfirm: () => {
+          appState.plans = appState.plans.filter(p => p.id !== id);
+          saveData();
+          renderPlanList();
+          renderDayTabs();
+          updateStats();
+          closeConfirmModal();
+          showToast('일정이 삭제되었습니다 🗑️');
+        }
+      });
+    }
+
+    function confirmClearCurrentDay() {
+      const count = appState.plans.filter(p => p.day === appState.currentDay).length;
+      if (count === 0) {
+        showToast('현재 일차에 비울 일정이 없습니다.');
+        return;
+      }
+
+      openConfirmModal({
+        title: `${appState.currentDay}일차 일정 전체 삭제`,
+        desc: `${appState.currentDay}일차에 등록된 ${count}개의 일정을 모두 지우시겠습니까?`,
+        onConfirm: () => {
+          appState.plans = appState.plans.filter(p => p.day !== appState.currentDay);
+          saveData();
+          renderPlanList();
+          renderDayTabs();
+          updateStats();
+          closeConfirmModal();
+          showToast(`${appState.currentDay}일차 일정이 모두 정리되었습니다 ✨`);
+        }
+      });
+    }
+
+    function openConfirmModal({ title, desc, onConfirm }) {
+      document.getElementById('confirmModalTitle').textContent = title;
+      document.getElementById('confirmModalDesc').textContent = desc;
+      confirmCallback = onConfirm;
+
+      const submitBtn = document.getElementById('confirmModalSubmitBtn');
+      submitBtn.onclick = () => {
+        if (typeof confirmCallback === 'function') confirmCallback();
+      };
+      document.getElementById('confirmModal').classList.remove('hidden');
+    }
+
+    function closeConfirmModal() {
+      document.getElementById('confirmModal').classList.add('hidden');
+      confirmCallback = null;
+    }
+
+    function updateStats() {
+      const total = appState.plans.length;
+      const completed = appState.plans.filter(p => p.completed).length;
+      const percent = total === 0 ? 0 : Math.round((completed / total) * 100);
+
+      document.getElementById('statTotalPlans').textContent = `${total}개`;
+      document.getElementById('statCompletedPlans').textContent = `${completed}개`;
+      document.getElementById('statProgressPercent').textContent = `${percent}%`;
+      document.getElementById('itineraryProgressBar').style.width = `${percent}%`;
+      const memberCountEl = document.getElementById('statFamilyCount');
+      if (memberCountEl) {
+        memberCountEl.textContent = `${appState.familyMembers.length}명`;
+      }
+    }
+
+    let toastTimer = null;
+    function showToast(message) {
+      const toast = document.getElementById('toast');
+      const toastMsg = document.getElementById('toastMsg');
+      toastMsg.textContent = message;
+
+      toast.classList.remove('opacity-0', 'translate-y-3', 'pointer-events-none');
+      toast.classList.add('opacity-100', 'translate-y-0');
+
+      if (toastTimer) clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => {
+        toast.classList.remove('opacity-100', 'translate-y-0');
+        toast.classList.add('opacity-0', 'translate-y-3', 'pointer-events-none');
+      }, 2300);
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      const div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    }
+  </script>
+</body>
+</html>
